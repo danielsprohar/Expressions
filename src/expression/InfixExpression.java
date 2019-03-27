@@ -80,6 +80,7 @@ public class InfixExpression {
 		// setup
 		Deque<Operator> stack = new ArrayDeque<>();
 		OperatorTable operatorTable = OperatorTable.getInstance();
+		
 		String infix = _infixExpression;
 		infix = infix.replaceAll(" ", "");
 		final int length = infix.length();
@@ -132,6 +133,70 @@ public class InfixExpression {
 		}
 
 		return postfixBuilder.toString();
+	}
+	
+	public String toPrefix() {
+		// setup the necessary stacks & table
+		Deque<Operator> operatorStack = new ArrayDeque<>();
+		Deque<String> operandStack = new ArrayDeque<>();
+		
+		// contains operator's precedence value
+		OperatorTable operatorTable = OperatorTable.getInstance();
+		
+		// bring private variable to local scope
+		String infix = _infixExpression;
+		infix = infix.replaceAll(" ", "");
+		final int length = infix.length();
+		
+		char currentCharacter;
+		
+		// do work
+		for (int i = 0; i < length; i++) {
+			currentCharacter = infix.charAt(i);
+			Operator operator = Operator.create(currentCharacter);
+			if (operator == null) {
+				// current character is an operand
+				operandStack.push(String.valueOf(currentCharacter));
+				continue;
+			}
+			
+			// current character is an operator
+			if (operatorStack.isEmpty()) {
+				operatorStack.push(operator);
+			} else {
+				int operatorPrecedence = operatorTable.getPrecedence(operator);
+				int topOperatorPrecedence = operatorTable.getPrecedence(operatorStack.peek());
+				
+				if (operator.equals(Operator.LEFT_PARENTHESIS)) {
+					operatorStack.push(operator);
+				} else if (operator.equals(Operator.RIGHT_PARENTHESIS)) {
+					while (!operatorStack.peek().equals(Operator.LEFT_PARENTHESIS)) {
+						createPrefix(operatorStack, operandStack);
+					}
+					// pop the left parenthesis
+					operatorStack.pop();
+				} else if (operatorPrecedence <= topOperatorPrecedence) {
+					createPrefix(operatorStack, operandStack);
+					operatorStack.push(operator);
+				} else if (operatorPrecedence > topOperatorPrecedence) {
+					operatorStack.push(operator);
+				}
+			}
+		}
+		
+		while (!operatorStack.isEmpty()) {
+			createPrefix(operatorStack, operandStack);
+		}
+		
+		return operandStack.pop();
+	}
+
+	private void createPrefix(Deque<Operator> operatorStack, Deque<String> operandStack) {
+		Operator topOperator = operatorStack.pop();
+		String operand1 = operandStack.pop();
+		String operand2 = operandStack.pop();
+		
+		operandStack.push(topOperator.toString() + operand2 + operand1);
 	}
 
 	@Override
